@@ -1,5 +1,5 @@
 .worktree/
-gotrova
+/gotrova
 *.exe
 *.exe~
 *.dll
