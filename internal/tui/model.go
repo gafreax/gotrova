@@ -110,6 +110,17 @@ func New(client goapi.Client) Model {
 	}
 }
 
+// SetQuery sets the initial search query and transitions the state to loading
+func (m *Model) SetQuery(query string) {
+	if query != "" {
+		m.input.SetValue(query)
+		m.state = stateLoading
+	}
+}
+
 func (m Model) Init() tea.Cmd {
+	if m.state == stateLoading {
+		return tea.Batch(textinput.Blink, m.spinner.Tick, m.searchCmd(m.input.Value()))
+	}
 	return textinput.Blink
 }

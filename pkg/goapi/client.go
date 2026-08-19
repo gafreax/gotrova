@@ -2,19 +2,18 @@ package goapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 )
 
 // Client defines the interface for interacting with the pkg.go.dev API
 type Client interface {
-	// Search queries the pkg.go.dev API and returns a list of packages
 	Search(ctx context.Context, query string) (*SearchResult, error)
-
-	// GetPackageDetails retrieves detailed information about a specific package path
 	GetPackageDetails(ctx context.Context, path string) (*Package, error)
 }
 
@@ -26,7 +25,7 @@ type defaultClient struct {
 // NewClient creates a new Client with the given base URL.
 func NewClient(baseURL string) Client {
 	if baseURL == "" {
-		baseURL = "https://pkg.go.dev/api"
+		baseURL = "https://pkg.go.dev"
 	}
 	return &defaultClient{
 		baseURL: baseURL,
@@ -64,42 +63,51 @@ func (c *defaultClient) Search(ctx context.Context, query string) (*SearchResult
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var result SearchResult
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
 	}
+	html := string(body)
 
+	// Naive HTML parsing with regex
+	var result SearchResult
+	
+	// Split by SearchSnippet
+	snippets := strings.Split(html, "class=\"SearchSnippet\"")
+	if len(snippets) > 1 {
+		for _, snip := range snippets[1:] {
+			var pkg Package
+			
+			// Extract title and path
+			reTitle := regexp.MustCompile(`data-test-id="snippet-title"[^>]*>\s*([^\n<]+)\s*<span class="SearchSnippet-header-path">\(([^)]+)\)`)
+			if matches := reTitle.FindStringSubmatch(snip); len(matches) >= 3 {
+				pkg.Name = strings.TrimSpace(matches[1])
+				pkg.Path = strings.TrimSpace(matches[2])
+			} else {
+				continue // skip if we can't even find a title
+			}
+			
+			// Extract synopsis
+			reSyn := regexp.MustCompile(`data-test-id="snippet-synopsis"[^>]*>\s*([^\n<]+)`)
+			if matches := reSyn.FindStringSubmatch(snip); len(matches) >= 2 {
+				pkg.Synopsis = strings.TrimSpace(matches[1])
+			}
+			
+			// Extract version
+			reVer := regexp.MustCompile(`<strong>(v[^<]+)</strong>\s*published`)
+			if matches := reVer.FindStringSubmatch(snip); len(matches) >= 2 {
+				pkg.Version = strings.TrimSpace(matches[1])
+			}
+			
+			result.Packages = append(result.Packages, pkg)
+		}
+	}
+	
+	result.Count = len(result.Packages)
 	return &result, nil
 }
 
 func (c *defaultClient) GetPackageDetails(ctx context.Context, path string) (*Package, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	u, err := url.Parse(fmt.Sprintf("%s/packages/%s", c.baseURL, url.PathEscape(path)))
-	if err != nil {
-		return nil, fmt.Errorf("invalid url: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	var pkg Package
-	if err := json.NewDecoder(resp.Body).Decode(&pkg); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &pkg, nil
+	// Not implemented for this minimal TUI
+	return nil, fmt.Errorf("not implemented")
 }
