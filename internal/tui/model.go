@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/gafreax/gotrova/pkg/goapi"
@@ -14,7 +15,8 @@ type state int
 const (
 	stateInput state = iota
 	stateLoading
-	stateList // reusing the name for the table view
+	stateList
+	stateDetail
 	stateError
 )
 
@@ -25,6 +27,7 @@ type Model struct {
 	input    textinput.Model
 	spinner  spinner.Model
 	table    table.Model
+	viewport viewport.Model
 	errorMsg string
 }
 
@@ -66,13 +69,20 @@ func New(client goapi.Client) Model {
 		Background(lipgloss.Color("57")).
 		Bold(false)
 	t.SetStyles(s)
+	
+	vp := viewport.New(80, 10)
+	vp.Style = lipgloss.NewStyle().
+		Padding(1, 2).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#334155"))
 
 	return Model{
-		client:  client,
-		state:   stateInput,
-		input:   ti,
-		spinner: sp,
-		table:   t,
+		client:   client,
+		state:    stateInput,
+		input:    ti,
+		spinner:  sp,
+		table:    t,
+		viewport: vp,
 	}
 }
 

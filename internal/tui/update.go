@@ -2,10 +2,12 @@ package tui
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/gafreax/gotrova/pkg/goapi"
 )
 
@@ -39,8 +41,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		_, v := docStyle.GetFrameSize()
+		h, v := docStyle.GetFrameSize()
 		m.table.SetHeight(msg.Height - v - 4) // adjust for header and padding
+		m.viewport.Width = msg.Width - h - 6  // extra padding inside panel
+		m.viewport.Height = msg.Height - v - 6
 	}
 
 	switch m.state {
@@ -101,9 +105,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 				m.input.Focus()
 				return m, textinput.Blink
+			} else if msg.Type == tea.KeyEnter {
+				if m.table.SelectedRow() != nil {
+					row := m.table.SelectedRow()
+					
+					// Build detailed view content
+					titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#06B6D4")).Bold(true).MarginBottom(1)
+					versionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#94A3B8")).MarginBottom(1)
+					
+					content := fmt.Sprintf("%s\n%s\n\n%s", 
+						titleStyle.Render(row[0]), 
+						versionStyle.Render("Version: "+row[1]), 
+						row[2],
+					)
+					
+					m.viewport.SetContent(content)
+					m.viewport.GotoTop()
+					m.state = stateDetail
+					return m, nil
+				}
 			}
 		}
 		m.table, cmd = m.table.Update(msg)
+		cmds = append(cmds, cmd)
+
+	case stateDetail:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.Type == tea.KeyEsc {
+				m.state = stateList
+				return m, nil
+			}
+		}
+		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 
 	case stateError:

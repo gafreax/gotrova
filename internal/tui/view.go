@@ -94,8 +94,13 @@ func (m Model) View() string {
 	case stateList:
 		header := renderHeader()
 		tableView := panelStyle.Render(m.table.View())
-		hint := hintStyle.Render("Press Esc to search again")
+		hint := hintStyle.Render("Press Enter to view details • Esc to search again")
 		return docStyle.Render(header + "\n" + tableView + "\n" + hint)
+
+	case stateDetail:
+		header := renderHeader()
+		hint := hintStyle.Render("Press Esc to go back • ↑/↓ to scroll")
+		return docStyle.Render(header + "\n" + m.viewport.View() + "\n" + hint)
 
 	case stateError:
 		header := renderHeader()
