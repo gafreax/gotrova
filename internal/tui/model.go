@@ -1,10 +1,8 @@
 package tui
 
 import (
-	"fmt"
-
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,35 +14,9 @@ type state int
 const (
 	stateInput state = iota
 	stateLoading
-	stateList
+	stateList // reusing the name for the table view
 	stateError
 )
-
-type item struct {
-	pkg goapi.Package
-}
-
-func (i item) Title() string {
-	if i.pkg.Path != "" {
-		return i.pkg.Path
-	}
-	return i.pkg.Name
-}
-
-func (i item) Description() string {
-	desc := i.pkg.Synopsis
-	if desc == "" {
-		desc = "No synopsis available."
-	}
-	if i.pkg.Version != "" {
-		return fmt.Sprintf("[%s] %s", i.pkg.Version, desc)
-	}
-	return desc
-}
-
-func (i item) FilterValue() string {
-	return i.pkg.Path + " " + i.pkg.Name + " " + i.pkg.Synopsis
-}
 
 type Model struct {
 	client goapi.Client
@@ -52,7 +24,7 @@ type Model struct {
 	state    state
 	input    textinput.Model
 	spinner  spinner.Model
-	list     list.Model
+	table    table.Model
 	errorMsg string
 }
 
@@ -71,42 +43,36 @@ func New(client goapi.Client) Model {
 	sp.Spinner = spinner.Dot
 	sp.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#06B6D4")).Bold(true)
 
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(lipgloss.Color("#06B6D4")).
-		Foreground(lipgloss.Color("#06B6D4")).
-		Bold(true).
-		Padding(0, 0, 0, 1)
+	columns := []table.Column{
+		{Title: "Package", Width: 35},
+		{Title: "Version", Width: 15},
+		{Title: "Description", Width: 60},
+	}
 
-	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(lipgloss.Color("#06B6D4")).
-		Foreground(lipgloss.Color("#94A3B8")).
-		Padding(0, 0, 0, 1)
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		table.WithHeight(10),
+	)
 
-	delegate.Styles.NormalTitle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#E2E8F0")).
-		Padding(0, 0, 0, 2)
-
-	delegate.Styles.NormalDesc = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#64748B")).
-		Padding(0, 0, 0, 2)
-
-	l := list.New([]list.Item{}, delegate, 0, 0)
-	l.Title = "GOTROVA // Search Results"
-	l.Styles.Title = lipgloss.NewStyle().
-		Background(lipgloss.Color("#06B6D4")).
-		Foreground(lipgloss.Color("#0F172A")).
-		Bold(true).
-		Padding(0, 1)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
 
 	return Model{
 		client:  client,
 		state:   stateInput,
 		input:   ti,
 		spinner: sp,
-		list:    l,
+		table:   t,
 	}
 }
 

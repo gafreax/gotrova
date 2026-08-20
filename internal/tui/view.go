@@ -92,7 +92,10 @@ func (m Model) View() string {
 		return docStyle.Render(header + "\n" + panelStyle.Render(status))
 
 	case stateList:
-		return docStyle.Render(m.list.View())
+		header := renderHeader()
+		tableView := panelStyle.Render(m.table.View())
+		hint := hintStyle.Render("Press Esc to search again")
+		return docStyle.Render(header + "\n" + tableView + "\n" + hint)
 
 	case stateError:
 		header := renderHeader()

@@ -3,7 +3,7 @@ package tui
 import (
 	"context"
 
-	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gafreax/gotrova/pkg/goapi"
@@ -39,8 +39,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v)
+		_, v := docStyle.GetFrameSize()
+		m.table.SetHeight(msg.Height - v - 4) // adjust for header and padding
 	}
 
 	switch m.state {
@@ -71,12 +71,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case searchMsg:
 			m.state = stateList
-			var items []list.Item
+			var rows []table.Row
 			for _, pkg := range msg.result.Packages {
-				items = append(items, item{pkg: pkg})
+				path := pkg.Path
+				if path == "" {
+					path = pkg.Name
+				}
+				rows = append(rows, table.Row{
+					path,
+					pkg.Version,
+					pkg.Synopsis,
+				})
 			}
-			cmd = m.list.SetItems(items)
-			cmds = append(cmds, cmd)
+			m.table.SetRows(rows)
+			m.table.GotoTop()
 		case errMsg:
 			m.state = stateError
 			m.errorMsg = msg.err.Error()
@@ -88,16 +96,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateList:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if m.list.FilterState() != list.Filtering {
-				if msg.Type == tea.KeyEsc {
-					m.state = stateInput
-					m.input.SetValue("")
-					m.input.Focus()
-					return m, textinput.Blink
-				}
+			if msg.Type == tea.KeyEsc {
+				m.state = stateInput
+				m.input.SetValue("")
+				m.input.Focus()
+				return m, textinput.Blink
 			}
 		}
-		m.list, cmd = m.list.Update(msg)
+		m.table, cmd = m.table.Update(msg)
 		cmds = append(cmds, cmd)
 
 	case stateError:
