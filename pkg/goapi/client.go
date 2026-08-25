@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -102,6 +103,24 @@ func (c *defaultClient) Search(ctx context.Context, query string) (*SearchResult
 			result.Packages = append(result.Packages, pkg)
 		}
 	}
+	
+	// Prioritize matches in package name or path
+	lowerQuery := strings.ToLower(query)
+	sort.SliceStable(result.Packages, func(i, j int) bool {
+		pi := result.Packages[i]
+		pj := result.Packages[j]
+		
+		iInName := strings.Contains(strings.ToLower(pi.Name), lowerQuery) || strings.Contains(strings.ToLower(pi.Path), lowerQuery)
+		jInName := strings.Contains(strings.ToLower(pj.Name), lowerQuery) || strings.Contains(strings.ToLower(pj.Path), lowerQuery)
+		
+		if iInName && !jInName {
+			return true
+		}
+		if !iInName && jInName {
+			return false
+		}
+		return false
+	})
 	
 	result.Count = len(result.Packages)
 	return &result, nil

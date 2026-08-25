@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -17,6 +18,21 @@ type searchMsg struct {
 
 type errMsg struct {
 	err error
+}
+
+type installResultMsg struct {
+	err error
+}
+
+func installCmd(pkg string) tea.Cmd {
+	return func() tea.Msg {
+		cmd := exec.Command("go", "get", pkg)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return installResultMsg{err: fmt.Errorf("%v: %s", err, string(out))}
+		}
+		return installResultMsg{err: nil}
+	}
 }
 
 func (m Model) searchCmd(query string) tea.Cmd {
@@ -122,6 +138,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.viewport.SetContent(content)
 					m.viewport.GotoTop()
 					m.state = stateDetail
+					m.installMsg = ""
+					m.isInstalling = false
 					return m, nil
 				}
 			}
@@ -135,6 +153,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.Type == tea.KeyEsc {
 				m.state = stateList
 				return m, nil
+			}
+			if msg.String() == "i" && !m.isInstalling {
+				row := m.table.SelectedRow()
+				if row != nil {
+					m.isInstalling = true
+					m.installMsg = "Installing..."
+					return m, tea.Batch(m.spinner.Tick, installCmd(row[0]))
+				}
+			}
+		case installResultMsg:
+			m.isInstalling = false
+			if msg.err != nil {
+				m.installMsg = "Error: " + msg.err.Error()
+			} else {
+				m.installMsg = "Installed successfully!"
+			}
+			return m, nil
+		default:
+			if m.isInstalling {
+				m.spinner, cmd = m.spinner.Update(msg)
+				cmds = append(cmds, cmd)
 			}
 		}
 		m.viewport, cmd = m.viewport.Update(msg)

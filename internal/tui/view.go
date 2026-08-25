@@ -99,8 +99,17 @@ func (m Model) View() string {
 
 	case stateDetail:
 		header := renderHeader()
-		hint := hintStyle.Render("Press Esc to go back • ↑/↓ to scroll")
-		return docStyle.Render(header + "\n" + m.viewport.View() + "\n" + hint)
+		hintText := "Press Esc to go back • ↑/↓ to scroll • i to install"
+		
+		var installStatus string
+		if m.isInstalling {
+			installStatus = "\n\n" + m.spinner.View() + " " + loadingStyle.Render(m.installMsg)
+		} else if m.installMsg != "" {
+			installStatus = "\n\n" + loadingStyle.Render(m.installMsg)
+		}
+
+		hint := hintStyle.Render(hintText)
+		return docStyle.Render(header + "\n" + m.viewport.View() + installStatus + "\n\n" + hint)
 
 	case stateError:
 		header := renderHeader()

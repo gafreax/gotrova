@@ -23,12 +23,14 @@ const (
 type Model struct {
 	client goapi.Client
 
-	state    state
-	input    textinput.Model
-	spinner  spinner.Model
-	table    table.Model
-	viewport viewport.Model
-	errorMsg string
+	state        state
+	input        textinput.Model
+	spinner      spinner.Model
+	table        table.Model
+	viewport     viewport.Model
+	errorMsg     string
+	installMsg   string
+	isInstalling bool
 }
 
 func New(client goapi.Client) Model {
