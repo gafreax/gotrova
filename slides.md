@@ -4,11 +4,22 @@ theme: default
 paginate: true
 style: |
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-  
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap')
+
+  :root {
+    --font-family: 'Inter', sans-serif;
+    --font-size: 20px;
+  }
+    
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+  }
+
   section {
     background-color: #2C001E; /* Ubuntu Dark Aubergine */
     color: #F8FAFC;
-    font-family: 'JetBrains Mono', monospace;
     font-size: 30px;
   }
   
@@ -38,14 +49,16 @@ style: |
     border: 2px solid #5E2750; /* Mid Aubergine */
     padding: 20px;
     font-size: 24px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    font-family: 'JetBrains Mono', monospace;
   }
   
   code {
+    font-family: 'JetBrains Mono', monospace;
     color: #E95420;
     background-color: rgba(233, 84, 32, 0.1);
-    padding: 2px 6px;
+    padding: 8px;
     border-radius: 4px;
+    margin: 4px;
   }
 
   /* Fancy accent bar at the top */
@@ -99,7 +112,9 @@ Start your search right from the command line:
 ```bash
 $ ./gotrova
 ```
+
 Or pass your query directly for instant results:
+
 ```bash
 $ ./gotrova bubbletea
 ```
@@ -121,26 +136,26 @@ Select a package from the table and hit `Enter`.
 `gotrova` smoothly transitions into a **Details Card** (using the Viewport bubble) offering plenty of space to read the full synopsis.
 
 Ready to use it? Just press `i`.
+
 ```bash
 # gotrova runs this for you in the background:
 go get <package_path>
 ```
+
 You'll see a beautiful loading spinner until the installation completes!
 
 ---
 
 ## 💜 Get Started Today
 
-Available now on GitHub.
+Available now on GitHub. Install it instantly anywhere you have Go:
 
 ```bash
-# Clone and build
-git clone https://github.com/gafreax/gotrova.git
-cd gotrova
-make build
+# Install globally
+go install github.com/gafreax/gotrova/cmd/gotrova@latest
 
 # Run!
-./gotrova
+gotrova
 ```
 
 *Built with ♥️ using Go and Bubble Tea.*
