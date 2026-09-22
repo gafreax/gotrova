@@ -8,6 +8,7 @@ type Package struct {
 	Version    string `json:"version"`
 	License    string `json:"license"`
 	CommitTime string `json:"commit_time"`
+	IsCommand  bool   `json:"is_command"`
 }
 
 // SearchResult represents the top-level response from a search query

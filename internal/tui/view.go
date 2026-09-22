@@ -99,7 +99,12 @@ func (m Model) View() string {
 
 	case stateDetail:
 		header := renderHeader()
-		hintText := "Press Esc to go back • ↑/↓ to scroll • i to install"
+		hintText := "Press Esc to go back • ↑/↓ to scroll • i to install (local)"
+		
+		idx := m.table.Cursor()
+		if idx >= 0 && idx < len(m.packages) && m.packages[idx].IsCommand {
+			hintText += " • I to install (global)"
+		}
 		
 		var installStatus string
 		if m.isInstalling {

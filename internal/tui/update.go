@@ -35,6 +35,21 @@ func installCmd(pkg string) tea.Cmd {
 	}
 }
 
+func globalInstallCmd(pkg, version string) tea.Cmd {
+	return func() tea.Msg {
+		target := pkg + "@" + version
+		if version == "" || version == "latest" {
+			target = pkg + "@latest"
+		}
+		cmd := exec.Command("go", "install", target)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return installResultMsg{err: fmt.Errorf("%v: %s", err, string(out))}
+		}
+		return installResultMsg{err: nil}
+	}
+}
+
 func (m Model) searchCmd(query string) tea.Cmd {
 	return func() tea.Msg {
 		res, err := m.client.Search(context.Background(), query)
@@ -91,8 +106,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case searchMsg:
 			m.state = stateList
+			m.packages = msg.result.Packages
 			var rows []table.Row
-			for _, pkg := range msg.result.Packages {
+			for _, pkg := range m.packages {
 				path := pkg.Path
 				if path == "" {
 					path = pkg.Name
@@ -158,8 +174,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				row := m.table.SelectedRow()
 				if row != nil {
 					m.isInstalling = true
-					m.installMsg = "Installing..."
+					m.installMsg = "Installing locally (go get)..."
 					return m, tea.Batch(m.spinner.Tick, installCmd(row[0]))
+				}
+			}
+			if msg.String() == "I" && !m.isInstalling {
+				idx := m.table.Cursor()
+				if idx >= 0 && idx < len(m.packages) && m.packages[idx].IsCommand {
+					row := m.table.SelectedRow()
+					if row != nil {
+						m.isInstalling = true
+						m.installMsg = "Installing globally (go install)..."
+						return m, tea.Batch(m.spinner.Tick, globalInstallCmd(row[0], row[1]))
+					}
 				}
 			}
 		case installResultMsg:

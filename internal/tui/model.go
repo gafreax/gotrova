@@ -31,6 +31,7 @@ type Model struct {
 	errorMsg     string
 	installMsg   string
 	isInstalling bool
+	packages     []goapi.Package
 }
 
 func New(client goapi.Client) Model {

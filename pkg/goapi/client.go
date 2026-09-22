@@ -100,6 +100,9 @@ func (c *defaultClient) Search(ctx context.Context, query string) (*SearchResult
 				pkg.Version = strings.TrimSpace(matches[1])
 			}
 			
+			// Detect if it's a command
+			pkg.IsCommand = strings.Contains(snip, "go-Chip--inverted\">command</span>")
+			
 			result.Packages = append(result.Packages, pkg)
 		}
 	}
